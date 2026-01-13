@@ -18,8 +18,8 @@ export const SoundwaveCanvas = ({ analyser, ...props }: SoundwaveCanvasProps) =>
     const stroke = false;
     const rand = 0;
     const gain = 3.0;
-    const rectSize = 7;
-    let rectSize_ = 7;
+    const rectSize = 10;
+    let rectSize_ = rectSize;
     const color = "white";
     const times = new Uint8Array(analyser.frequencyBinCount);
     const barWidth = canvas[isVertical ? "height" : "width"] / analyser.frequencyBinCount;
@@ -58,7 +58,9 @@ export const SoundwaveCanvas = ({ analyser, ...props }: SoundwaveCanvasProps) =>
       }
       meanVal /= analyser.frequencyBinCount;
       if (meanVal > 0.1) {
-        rectSize_ = rectSize * 2;
+        rectSize_ = rectSize * 5;
+      } else if (meanVal > 0.4) {
+        rectSize_ = rectSize * 10;
       } else {
         rectSize_ = rectSize;
       }

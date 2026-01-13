@@ -1,12 +1,29 @@
+"use client";
 import { cn } from "@/lib/utils";
+import { useMessUserStore } from "@/store/mess.user.store";
+import { useEffect, useRef } from "react";
 
-export const Fin = ({ tabNb }: { tabNb: number }) => {
+export const Fin = () => {
+  const refDiv = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const unsubscribeGain = useMessUserStore.subscribe(
+      (state) => state.goto,
+      (value) => {
+        if (refDiv.current)
+          if (value === -1) {
+            refDiv.current.style.zIndex = "20";
+          } else {
+            refDiv.current.style.zIndex = "10";
+          }
+      }
+    );
+
+    return () => {
+      unsubscribeGain();
+    };
+  }, []);
   return (
-    <div
-      className={cn("absolute size-full bg-accent z-0 flex justify-center items-center gap-4 flex-col text-center text-lg", {
-        "z-20": tabNb === -1,
-      })}
-    >
+    <div ref={refDiv} className={cn("absolute size-full bg-accent z-0 flex justify-center items-center gap-4 flex-col text-center text-lg")}>
       <h1 className="text-4xl py-5">
         <strong>FIN</strong>
       </h1>
@@ -17,11 +34,11 @@ export const Fin = ({ tabNb }: { tabNb: number }) => {
         <br />
         <strong>Romain AL.</strong>
         <br />
-        Développement numérique / Vidéos live <br />
+        Développement numérique / Vidéos <br />
         <br />
         <strong>Nicolas CANOT</strong>
         <br />
-        Électronique / FX / Spatialisation sonore
+        Électronique / FX
       </p>
       <p>
         Expérience imaginée avec

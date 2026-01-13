@@ -1,4 +1,5 @@
 "use client";
+import { useMessUserStore } from "@/store/mess.user.store";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useWindowSize } from "usehooks-ts";
 
@@ -11,7 +12,8 @@ function useIsClient() {
   );
 }
 
-export const NoiseCanvas = ({ tabNb }: { tabNb: number }) => {
+export const NoiseCanvas = () => {
+  const goto = useMessUserStore((s) => s.goto);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
   const isClient = useIsClient();
@@ -53,15 +55,15 @@ export const NoiseCanvas = ({ tabNb }: { tabNb: number }) => {
   };
 
   useEffect(() => {
-    if (isClient && canvasRef.current && width > 0 && tabNb === 3) {
+    if (isClient && canvasRef.current && width > 0 && goto === 3) {
       drawNoise(canvasRef.current);
     }
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isClient, width, height, tabNb]);
+  }, [isClient, width, height, goto]);
 
-  if (!isClient || tabNb !== 3) return null;
+  if (!isClient || goto !== 3) return null;
 
   return <canvas ref={canvasRef} width={width * 2} height={height * 2} className="absolute inset-0 size-full z-20" />;
 };
