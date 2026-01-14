@@ -3,7 +3,7 @@ import { useWebrtcAdminStore } from "@/store/webrtc.admin.store";
 import { memo, useEffect, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 
-export const AudioMeterMemo = memo(function AudioMeter({ id, analyser_admin = null }: { id: string; analyser_admin?: AnalyserNode | null }) {
+export const AudioMeterMemo = memo(function AudioMeter({ id }: { id: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const refAudio = useRef<HTMLAudioElement>(null); // RÉ-AJOUTÉ
 
@@ -13,7 +13,8 @@ export const AudioMeterMemo = memo(function AudioMeter({ id, analyser_admin = nu
 
   const requestRef = useRef<number>(null);
 
-  const ch = 0;
+  const divisor = merger?.numberOfInputs ?? 2;
+  const ch = parseInt(id.slice(-2)) % divisor || 0;
 
   useEffect(() => {
     if (!audioContext || !merger || !stream || !stream.active) return;
@@ -27,15 +28,24 @@ export const AudioMeterMemo = memo(function AudioMeter({ id, analyser_admin = nu
 
     const analyser = audioContext.createAnalyser();
     const splitter = audioContext.createChannelSplitter(2);
-    const gainStream = audioContext.createGain();
     const source = audioContext.createMediaStreamSource(stream);
-
+    const gainStream = audioContext.createGain();
+    gainStream.gain.value = useAudioAdminStore.getState().globalClientsGain;
+    const unsub = useAudioAdminStore.subscribe(
+      (state) => state.globalClientsGain,
+      (value) => {
+        gainStream.gain.setTargetAtTime(value, audioContext.currentTime, 0.05);
+      }
+    );
     source.connect(splitter);
     splitter.connect(analyser, 0);
     analyser.connect(gainStream);
 
-    if (ch < merger.numberOfInputs) {
-      gainStream.connect(merger, 0, ch);
+    const gains = useAudioAdminStore.getState().mergerGains;
+
+    if (ch < gains.length) {
+      // On connecte le gain local du stream au fader de la console admin
+      gainStream.connect(gains[ch]);
     }
 
     // --- VISU ---
@@ -61,6 +71,7 @@ export const AudioMeterMemo = memo(function AudioMeter({ id, analyser_admin = nu
       splitter.disconnect();
       analyser.disconnect();
       gainStream.disconnect();
+      unsub();
       if (currentAudioEl) {
         currentAudioEl.srcObject = null;
         currentAudioEl.load(); // Force la libération des ressources sur certains navigateurs
@@ -71,7 +82,6 @@ export const AudioMeterMemo = memo(function AudioMeter({ id, analyser_admin = nu
   return (
     <div className="size-full border border-white/5 relative" ref={ref}>
       <audio ref={refAudio} autoPlay muted playsInline className="hidden" />
-      <div className="absolute inset-0 flex items-center justify-center text-[8px] opacity-20">CH {ch}</div>
     </div>
   );
 });

@@ -1,82 +1,69 @@
 "use client";
-
 import { AudioMeterMemo } from "@/components/audioMeter";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { useAudioAdminStore } from "@/store/audio.admin.store";
 import { useWebrtcAdminStore } from "@/store/webrtc.admin.store";
-import { useEffect } from "react";
-import { useUnmount } from "usehooks-ts";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
-// const NB = 20;
-// const array = new Array(NB).fill(null);
 export default function Home() {
   const userS_id = useWebrtcAdminStore(useShallow((store) => store.userS.filter((u) => u.peerCo).map((u) => u.id)));
-  const audioContext = useAudioAdminStore((store) => store.audioContext);
-
-  useEffect(() => {
-    audioContext?.resume();
-    // setAudioAnalyser();
-  }, [audioContext]);
-
-  useUnmount(() => {
-    audioContext?.suspend();
-  });
+  const globalGain = useAudioAdminStore((s) => s.globalClientsGain);
+  const setGlobalGain = useAudioAdminStore((s) => s.setGlobalClientsGain);
 
   return (
-    <div className="flex size-full flex-row flex-wrap gap-0 justify-center content-start">
-      {userS_id.map((user_id) => (
-        <div
-          key={user_id}
-          className={cn("relative h-1/13 aspect-square border border-accent", {
-            "h-full": userS_id.length <= 1,
-            "h-1/2": userS_id.length > 1 && userS_id.length <= 6,
-            "h-1/3": userS_id.length > 6 && userS_id.length <= 15,
-            "h-1/4": userS_id.length > 15 && userS_id.length <= 28,
-            "h-1/5": userS_id.length > 28 && userS_id.length <= 40,
-            "h-1/6": userS_id.length > 40 && userS_id.length <= 60,
-            "h-1/7": userS_id.length > 60 && userS_id.length <= 84,
-            "h-1/8": userS_id.length > 84 && userS_id.length <= 112,
-            "h-1/9": userS_id.length > 112 && userS_id.length <= 144,
-            "h-1/10": userS_id.length > 144 && userS_id.length <= 170,
-            "h-1/11": userS_id.length > 170 && userS_id.length <= 209,
-            "h-1/12": userS_id.length > 209 && userS_id.length <= 252,
-          })}
-        >
-          <div className="aspect-square w-full">
-            <AudioMeterMemo id={user_id} />
+    <div className="relative size-full bg-black overflow-hidden font-mono">
+      {/* HEADER / BARRE DE GAIN FLOTTANTE */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+        <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-white/40 leading-none">USERS GAIN</span>
+            <span className="text-xs font-bold text-red-500 tabular-nums">{globalGain.toFixed(2)}</span>
+          </div>
+
+          <Slider max={1} min={0} step={0.01} value={[globalGain]} onValueChange={setGlobalGain} className="flex-1 cursor-pointer" />
+
+          <div className="text-[10px] text-white/40 flex flex-col items-end">
+            <span>USERS</span>
+            <span className="text-white">{userS_id.length}</span>
           </div>
         </div>
-      ))}
-      {/* {array.map((user, i) => (
-        <div
-          key={i}
-          className={cn("relative h-1/13 aspect-square border border-accent", {
-            "h-full": NB <= 1,
-            "h-1/2": NB > 1 && NB <= 6,
-            "h-1/3": NB > 6 && NB <= 15,
-            "h-1/4": NB > 15 && NB <= 28,
-            "h-1/5": NB > 28 && NB <= 40,
-            "h-1/6": NB > 40 && NB <= 60,
-            "h-1/7": NB > 60 && NB <= 84,
-            "h-1/8": NB > 84 && NB <= 112,
-            "h-1/9": NB > 112 && NB <= 144,
-            "h-1/10": NB > 144 && NB <= 170,
-            "h-1/11": NB > 170 && NB <= 209,
-            "h-1/12": NB > 209 && NB <= 252,
-          })}
-        >
-          <div className="absolute top-0 flex size-full">
-            <p
-              className={cn("w-3/5 h-1/3 m-auto bg-background font-black text-primary flex items-center justify-center text-lg", {
-                "text-xs font-base": NB > 94,
-              })}
-            >
-              {"TOTO"}
-            </p>
+      </div>
+
+      {/* GRILLE DE MONITORING */}
+      <div className="flex size-full flex-row flex-wrap gap-0 justify-center content-center bg-zinc-950">
+        {userS_id.map((user_id) => (
+          <div
+            key={user_id}
+            className={cn("relative transition-all duration-500 ease-in-out border-[0.5px] border-white/5", {
+              "h-full aspect-square": userS_id.length <= 1,
+              "h-1/2 aspect-square": userS_id.length > 1 && userS_id.length <= 4,
+              "h-1/3 aspect-square": userS_id.length > 4 && userS_id.length <= 9,
+              "h-1/4 aspect-square": userS_id.length > 9 && userS_id.length <= 16,
+              "h-1/5 aspect-square": userS_id.length > 16 && userS_id.length <= 25,
+              "h-1/6 aspect-square": userS_id.length > 25 && userS_id.length <= 36,
+              "h-1/8 aspect-square": userS_id.length > 36 && userS_id.length <= 64,
+              "h-1/10 aspect-square": userS_id.length > 64 && userS_id.length <= 100,
+              "h-1/12 aspect-square": userS_id.length > 100,
+            })}
+          >
+            {/* Petit indicateur de canal discret en overlay */}
+            <div className="absolute top-1 left-1 z-10 text-[11px] text-red-500 pointer-events-none">ID:{user_id.slice(-4)}</div>
+
+            <div className="size-full overflow-hidden">
+              <AudioMeterMemo id={user_id} />
+            </div>
           </div>
-        </div>
-      ))} */}
+        ))}
+
+        {/* Empty state si personne n'est connecté */}
+        {userS_id.length === 0 && (
+          <div className="flex flex-col items-center gap-2 opacity-20">
+            <div className="w-12 h-12 border-2 border-dashed border-white rounded-full animate-spin-slow" />
+            <p className="text-[10px] tracking-widest uppercase">Waiting for streams...</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

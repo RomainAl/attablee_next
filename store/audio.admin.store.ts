@@ -1,26 +1,69 @@
 import { create } from "zustand";
-
+import { subscribeWithSelector } from "zustand/middleware";
 type audioStoreType = {
   audioContext: AudioContext | null;
   audioAnalyser: AnalyserNode | null;
   merger: ChannelMergerNode | null;
+  globalClientsGain: number;
+  setGlobalClientsGain: (val: number[]) => void;
+  mergerGains: GainNode[]; // Tableau des gains individuels
+  channelGains: number[]; // Valeurs numériques pour l'UI
+  setChannelGain: (ch: number, val: number[]) => void;
 };
 
-export const useAudioAdminStore = create<audioStoreType>(() => ({
-  audioContext: null,
-  audioAnalyser: null,
-  merger: null,
-}));
+export const useAudioAdminStore = create<audioStoreType>()(
+  subscribeWithSelector((set, get) => ({
+    audioContext: null,
+    audioAnalyser: null,
+    merger: null,
+    globalClientsGain: 1.0,
+    setGlobalClientsGain: (val: number[]) => set({ globalClientsGain: val[0] }),
+    mergerGains: [],
+    channelGains: [],
+    setChannelGain: (ch, val) => {
+      const { mergerGains, audioContext } = get();
+      const numericVal = val[0]; // On extrait la valeur du Slider
+
+      if (mergerGains[ch] && audioContext) {
+        mergerGains[ch].gain.setTargetAtTime(numericVal, audioContext.currentTime, 0.03);
+
+        set((state) => {
+          const newGains = [...state.channelGains];
+          newGains[ch] = numericVal;
+          return { channelGains: newGains };
+        });
+      }
+    },
+  }))
+);
 
 export const setAdminAudio = async () => {
-  const ctx = new AudioContext();
+  const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
+  if (ctx.destination.maxChannelCount >= 10) {
+    ctx.destination.channelCount = 10;
+  }
   ctx.resume();
-  const merger = ctx.createChannelMerger(ctx.destination.maxChannelCount);
+  const merger = ctx.createChannelMerger(Math.min(ctx.destination.channelCount, 10));
+  console.log("NOMBRE DE SORTIES :", merger.numberOfInputs);
+  // merger.channelCountMode = "explicit";
   merger.channelInterpretation = "discrete";
   merger.connect(ctx.destination);
+  const gains: GainNode[] = [];
+  const initialGainsValues: number[] = [];
+
+  for (let i = 0; i < merger.numberOfInputs; i++) {
+    const g = ctx.createGain();
+    g.gain.value = 1.0;
+    // On connecte chaque gain à son entrée spécifique du merger
+    g.connect(merger, 0, i);
+    gains.push(g);
+    initialGainsValues.push(1.0);
+  }
   useAudioAdminStore.setState({
     audioContext: ctx,
     merger: merger,
+    mergerGains: gains,
+    channelGains: initialGainsValues,
   });
 };
 

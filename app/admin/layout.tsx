@@ -1,91 +1,36 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { setAdminAudio } from "@/store/audio.admin.store";
-import { setCurrentPage } from "@/store/mess.admin.store";
-import { createPeer, reconnUsers } from "@/store/webrtc.admin.store";
 import { useRef } from "react";
 import { useEventListener } from "usehooks-ts";
+import Header from "./header";
+import MixerFooter from "./mixerFooter";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  console.log("RENDER ADMIN LAYOUT !");
+  console.log("RENDER LAYOUT");
   const pageRef = useRef<HTMLDivElement>(null!);
-
-  const initAdmin = () => {
-    createPeer();
-    setAdminAudio();
-    // setMidis();
-  };
-
-  const requestFullscreen = () => {
-    const element = pageRef.current;
-    if (element) {
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      }
-    }
-  };
 
   const handleDoubleClick = () => {
     if (!document.fullscreenElement) {
-      // Vérifie si on n'est pas déjà en plein écran
-      requestFullscreen();
+      pageRef.current?.requestFullscreen();
     } else {
-      // Optionnellement, on pourrait gérer la sortie du plein écran ici
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen?.();
     }
   };
 
   useEventListener("dblclick", handleDoubleClick, pageRef);
 
   return (
-    <div ref={pageRef} className="h-dvh w-dvw flex flex-col">
-      <div className="w-full h-fit z-50 flex flex-row gap-1">
-        <Button variant={"destructive"} onClick={initAdmin}>
-          INIT
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentPage(1);
-          }}
-        >
-          SAMPLER
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentPage(2);
-          }}
-        >
-          VIDEOS
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentPage(3);
-          }}
-        >
-          NOISE
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentPage(42);
-          }}
-        >
-          NIKEDAL
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentPage(4);
-          }}
-        >
-          FIN
-        </Button>
-        <Button variant={"destructive"} onClick={reconnUsers} className="ml-auto">
-          RECONNECT ALL
-        </Button>
-      </div>
-      {children}
+    <div ref={pageRef} className="h-dvh w-dvw flex flex-col bg-[#050505] text-white selection:bg-red-500/30">
+      {/* BARRE DE NAVIGATION STYLE "RACK" */}
+      <Header />
+
+      {/* ZONE DE CONTENU */}
+      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_50%_50%,_rgba(20,20,20,1)_0%,_rgba(0,0,0,1)_100%)]">
+        {children}
+      </main>
+
+      {/* PETITE BARRE D'ÉTAT DISCRÈTE */}
+      <MixerFooter />
     </div>
   );
 }
