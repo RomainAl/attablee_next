@@ -26,16 +26,35 @@ export const Sampler = () => {
   const loadAllRNBO = useAudioStore((s) => s.loadAllRNBO);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const peerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
 
   const rebuildGraph = useCallback(() => {
-    if (!sourceRef.current || !devices || !masterGainRef.current) return;
+    if (!sourceRef.current || !devices || !masterGainRef.current || !analyser) return;
 
+    // 1. Déconnexion totale pour repartir à propre
     sourceRef.current.disconnect();
     Object.values(devices).forEach((d) => d.node.disconnect());
+    masterGainRef.current.disconnect();
 
+    // 2. Gestion de l'Analyser (Le point clé)
+    // Si on enregistre, l'analyser écoute le micro. Sinon, il écoute le master.
+    if (isRecording) {
+      sourceRef.current.connect(analyser);
+    }
+
+    // Toujours connecter le master aux sorties fixes
+    // Note: On ne disconnecte pas peerDest ici car il est géré dans init
+    masterGainRef.current.connect(audioContext!.destination);
+    masterGainRef.current.connect(analyser);
+    if (peerDestRef.current) {
+      masterGainRef.current.connect(peerDestRef.current);
+    }
+    // Re-connecter peerDest si tu as gardé une ref, sinon masterGain.connect(peerDest) dans init suffit
+    // car masterGain.disconnect() sans arguments coupe TOUT.
+
+    // 3. Reconstruction de la chaîne
     let lastNode: AudioNode = sourceRef.current;
-
     names.forEach((name) => {
       const device = devices[name];
       if (device && activeEffects.includes(name)) {
@@ -45,7 +64,7 @@ export const Sampler = () => {
     });
 
     lastNode.connect(masterGainRef.current);
-  }, [activeEffects, devices, names]);
+  }, [activeEffects, devices, names, analyser, isRecording, audioContext]);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +82,7 @@ export const Sampler = () => {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
-        localStream = stream;
+
         const ctx = initAudio(stream.getAudioTracks()[0].getSettings().sampleRate || 48000);
         if (!ctx) return;
 
@@ -77,11 +96,12 @@ export const Sampler = () => {
         masterGain.connect(peerDest);
 
         // 1. On remplit les variables locales pour le cleanup
+        localStream = stream;
         localSource = source;
         localPeerDest = peerDest;
 
         sourceRef.current = source;
-
+        peerDestRef.current = peerDest;
         masterGainRef.current = masterGain;
         setAnalyser(analyserNode);
 
@@ -201,12 +221,10 @@ export const Sampler = () => {
           onRecord={() => {
             const sampler = devices["sampler"];
             if (!sampler || !masterGainRef.current || !audioContext || !analyser || !sourceRef.current) return;
-            masterGainRef.current.disconnect(analyser);
-            sourceRef.current.connect(analyser);
             masterGainRef.current.gain.setTargetAtTime(0, audioContext.currentTime, 0.01);
             if ("vibrate" in navigator) navigator.vibrate(50);
             setIsRecording(true);
-
+            rebuildGraph();
             setTimeout(() => {
               sampler.parameters.find((p) => p.name == "clear_buf").value = 1.0 - sampler.parameters.find((p) => p.name == "clear_buf").value;
               sampler.parameters.find((p) => p.name == "rec").value = 1.0;
@@ -216,10 +234,9 @@ export const Sampler = () => {
             }, 500);
 
             setTimeout(() => {
-              sourceRef.current?.disconnect(analyser);
-              masterGainRef.current?.connect(analyser);
               if ("vibrate" in navigator) navigator.vibrate([50, 50, 50]);
               setIsRecording(false);
+              rebuildGraph();
               sampler.parameters.find((p) => p.name == "rec").value = 0.0;
               sampler.parameters.find((p) => p.name === "out_gain").value = 1.0;
               sampler.parameters.find((p) => p.name === "rand_play").value = 1.0;

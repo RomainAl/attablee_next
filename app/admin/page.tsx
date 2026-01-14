@@ -12,7 +12,6 @@ import { useShallow } from "zustand/react/shallow";
 // const array = new Array(NB).fill(null);
 export default function Home() {
   const userS_id = useWebrtcAdminStore(useShallow((store) => store.userS.filter((u) => u.peerCo).map((u) => u.id)));
-  console.log(userS_id);
   const audioContext = useAudioAdminStore((store) => store.audioContext);
 
   useEffect(() => {
