@@ -34,7 +34,7 @@ export default function Home() {
       createPeer();
       setTimeout(() => {
         setBegining(false);
-      }, 10000);
+      }, 20000);
     } catch (e) {
       if (e instanceof Error) {
         console.log(e);

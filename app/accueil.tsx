@@ -17,7 +17,7 @@ export const Accueil = ({ start }: { start: () => void }) => {
     // On désactive le loader après 10s si rien ne s'est passé
     setTimeout(() => {
       setClicked(false);
-    }, 10000);
+    }, 20000);
   };
 
   useEffect(() => {

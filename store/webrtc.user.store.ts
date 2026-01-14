@@ -274,7 +274,7 @@ export const setStream = (stream: MediaStream) => {
       ?.replaceTrack(stream.getVideoTracks()[0]);
   } else {
     const peer = useWebrtcUserStore.getState().peer;
-    const peerMedia = peer?.call(adminId, stream); // TODO GLOUPS PEERJS !??!
+    const peerMedia = peer?.call(adminId, stream);
     useWebrtcUserStore.setState({ peerMedia });
   }
 };

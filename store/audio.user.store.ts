@@ -51,38 +51,32 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       return;
     }
 
+    set({ isLoading: 0.1 });
+
     try {
       const loadedDevices: Record<string, Device> = {};
 
-      // Helper pour assigner un paramètre sans faire planter l'app
-      const setSafeParam = (deviceName: string, paramName: string, value: number) => {
-        const dev = loadedDevices[deviceName];
-        const p = dev?.parameters.find((p) => p.name === paramName);
-        if (p) p.value = value;
-      };
+      await Promise.all(
+        names.map(async (name, i) => {
+          set({ isLoading: (100 * i + 1) / names.length });
+          const response = await fetch(`effects/${name}.export.json`);
+          const patcher = await response.json();
+          const device = await createDevice({ context: audioContext, patcher });
+          loadedDevices[name] = device;
 
-      // Chargement séquentiel pour mettre à jour la barre de progression
-      for (let i = 0; i < names.length; i++) {
-        const name = names[i];
-        set({ isLoading: Math.max(i / names.length, 0.01) }); // Update progress (0 to 0.99)
+          const currentCount = Object.keys(loadedDevices).length;
+          set({ isLoading: currentCount / names.length });
+        })
+      );
 
-        const response = await fetch(`effects/${name}.export.json`);
-        if (!response.ok) throw new Error(`Failed to load ${name}`);
-
-        const patcher = await response.json();
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        const device = await createDevice({ context: audioContext, patcher });
-        loadedDevices[name] = device;
-      }
-
-      // 3. Configuration initiale sécurisée
-      setSafeParam("delay", "time", 30.0);
-      setSafeParam("delay", "input", 1.0);
-      setSafeParam("downsample", "down-sample", 10.0);
-      setSafeParam("reverb", "mix", 100.0);
-      setSafeParam("disto", "drive", 20.0);
-      setSafeParam("disto", "mix", 100.0);
-      setSafeParam("disto", "treble", 50.0);
+      loadedDevices["delay"].parameters.find((p) => p.name === "time")!.value = 30.0;
+      loadedDevices["downsample"].parameters.find((p) => p.name === "down-sample").value = 10.0;
+      loadedDevices["delay"].parameters.find((p) => p.name === "input").value = 1.0;
+      loadedDevices["delay"].parameters.find((p) => p.name === "time").value = 30.0;
+      loadedDevices["reverb"].parameters.find((p) => p.name === "mix").value = 100.0;
+      loadedDevices["disto"].parameters.find((p) => p.name === "drive").value = 20.0;
+      loadedDevices["disto"].parameters.find((p) => p.name === "mix").value = 100.0;
+      loadedDevices["disto"].parameters.find((p) => p.name === "treble").value = 50.0;
 
       set({ devices: loadedDevices, isLoading: 1 });
       console.log("🚀 RNBO Effects Loaded & Configured");
@@ -92,7 +86,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       setToast({
         type: "error",
         data: {
-          title: "PROBLÈME CHARGEMENT",
+          title: "PROBLÈME AUDIO",
           content: "Erreur lors de la récupération des modules audio. Vérifie ta connexion.",
         },
       });

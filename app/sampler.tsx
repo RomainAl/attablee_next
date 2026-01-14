@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 import { useAudioStore } from "@/store/audio.user.store";
 import { useMessUserStore } from "@/store/mess.user.store";
 import { setToast } from "@/store/shared.store";
+import { setStream } from "@/store/webrtc.user.store";
 import { Cog, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const Sampler = () => {
   const [showSettings, setShowSettings] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [showIntro, setShowIntro] = useState(true); // État pour la popup
   const goto = useMessUserStore((s) => s.goto);
   const audioContext = useAudioStore((s) => s.audioContext);
@@ -22,22 +24,15 @@ export const Sampler = () => {
   const activeEffects = useAudioStore((s) => s.activeEffects);
   const initAudio = useAudioStore((s) => s.initAudio);
   const loadAllRNBO = useAudioStore((s) => s.loadAllRNBO);
-
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-
-  // GainNode persistant pour le volume général
   const masterGainRef = useRef<GainNode | null>(null);
 
-  // --- RECONSTRUCTION DU GRAPHE ---
   const rebuildGraph = useCallback(() => {
-    if (!sourceRef.current || !analyser || !audioContext || !devices || !masterGainRef.current) return;
+    if (!sourceRef.current || !devices || !masterGainRef.current) return;
 
     sourceRef.current.disconnect();
     Object.values(devices).forEach((d) => d.node.disconnect());
-    analyser.disconnect();
-    masterGainRef.current.disconnect();
 
     let lastNode: AudioNode = sourceRef.current;
 
@@ -49,16 +44,14 @@ export const Sampler = () => {
       }
     });
 
-    // Insertion du Master Gain avant la destination
     lastNode.connect(masterGainRef.current);
-    masterGainRef.current.connect(audioContext.destination);
-    masterGainRef.current.connect(analyser);
-
-    console.log("Graphe reconstruit avec Master Volume");
-  }, [activeEffects, analyser, audioContext, devices, names]);
+  }, [activeEffects, devices, names]);
 
   useEffect(() => {
     let isMounted = true;
+    let localStream: MediaStream | null = null;
+    let localSource: MediaStreamAudioSourceNode | null = null; // Variable locale pour le cleanup
+    let localPeerDest: MediaStreamAudioDestinationNode | null = null;
 
     const initAudioStack = async () => {
       try {
@@ -70,35 +63,48 @@ export const Sampler = () => {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
-
+        localStream = stream;
         const ctx = initAudio(stream.getAudioTracks()[0].getSettings().sampleRate || 48000);
         if (!ctx) return;
 
-        // Initialisation du Master Gain
         const masterGain = ctx.createGain();
-        masterGainRef.current = masterGain;
+        const analyserNode = ctx.createAnalyser();
+        const peerDest = ctx.createMediaStreamDestination();
+        const source = ctx.createMediaStreamSource(stream);
 
-        micStreamRef.current = stream;
-        sourceRef.current = ctx.createMediaStreamSource(stream);
+        masterGain.connect(ctx.destination);
+        masterGain.connect(analyserNode);
+        masterGain.connect(peerDest);
+
+        // 1. On remplit les variables locales pour le cleanup
+        localSource = source;
+        localPeerDest = peerDest;
+
+        sourceRef.current = source;
+
+        masterGainRef.current = masterGain;
+        setAnalyser(analyserNode);
+
+        // Envoi initial du flux à WebRTC
+        setStream(peerDest.stream);
 
         await loadAllRNBO(names);
 
-        if (!isMounted) return;
-
-        const analyserNode = ctx.createAnalyser();
-        setAnalyser(analyserNode);
         ctx.resume();
       } catch (err) {
         console.error("Erreur Initialisation Instru:", err);
         setToast({ type: "error", data: { title: "MICRO/CAMERA", content: "Accès refusé..." }, autoClose: 20000 });
       }
     };
+
     if (goto === 1) initAudioStack();
 
     return () => {
       isMounted = false;
-      if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
-      sourceRef.current?.disconnect();
+      if (localStream) localStream.getTracks().forEach((t) => t.stop());
+      if (localSource) localSource.disconnect();
+      if (localPeerDest) localPeerDest.disconnect();
+
       audioContext?.suspend();
     };
   }, [initAudio, loadAllRNBO, audioContext, goto, names]);
@@ -122,8 +128,7 @@ export const Sampler = () => {
     <div className="fixed inset-0 bg-black overflow-hidden select-none z-20">
       {showIntro && (
         <div className="fixed inset-0 z-30 flex items-center justify-center p-6 animate-in fade-in duration-500">
-          {/* Background cliquable pour fermer */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowIntro(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setShowIntro(false)} />
 
           {/* Carte de la popup */}
           <div className="relative bg-accent/90 border border-white/10 p-4 rounded-2xl shadow-2xl max-w-sm w-full flex flex-col items-center text-center gap-6 animate-in zoom-in-95 duration-300">
@@ -163,7 +168,7 @@ export const Sampler = () => {
       </div>
 
       {/* 2. Soundwave */}
-      {analyser && <SoundwaveCanvas className="absolute inset-0 h-screen w-full z-0" analyser={analyser} />}
+      {analyser && <SoundwaveCanvas className="absolute inset-0 h-screen w-full z-0" analyser={analyser} isRecording={isRecording} />}
 
       {/* 3. Tiroir des réglages */}
       <div
@@ -195,15 +200,13 @@ export const Sampler = () => {
         <RecButton
           onRecord={() => {
             const sampler = devices["sampler"];
-            if (!sampler || !masterGainRef.current || !audioContext) return;
-
-            // 1. COUPER LE SON (Master Mute)
-            // On utilise une rampe très courte (0.01s) pour éviter un "clic" sec
+            if (!sampler || !masterGainRef.current || !audioContext || !analyser || !sourceRef.current) return;
+            masterGainRef.current.disconnect(analyser);
+            sourceRef.current.connect(analyser);
             masterGainRef.current.gain.setTargetAtTime(0, audioContext.currentTime, 0.01);
+            if ("vibrate" in navigator) navigator.vibrate(50);
+            setIsRecording(true);
 
-            console.log("REC START - Muted");
-
-            // Ta logique RNBO existante
             setTimeout(() => {
               sampler.parameters.find((p) => p.name == "clear_buf").value = 1.0 - sampler.parameters.find((p) => p.name == "clear_buf").value;
               sampler.parameters.find((p) => p.name == "rec").value = 1.0;
@@ -213,17 +216,15 @@ export const Sampler = () => {
             }, 500);
 
             setTimeout(() => {
-              console.log("STOP REC - Unmuted");
-
-              // Ta logique RNBO existante
+              sourceRef.current?.disconnect(analyser);
+              masterGainRef.current?.connect(analyser);
+              if ("vibrate" in navigator) navigator.vibrate([50, 50, 50]);
+              setIsRecording(false);
               sampler.parameters.find((p) => p.name == "rec").value = 0.0;
               sampler.parameters.find((p) => p.name === "out_gain").value = 1.0;
               sampler.parameters.find((p) => p.name === "rand_play").value = 1.0;
               sampler.parameters.find((p) => p.name === "loop_start_point").value = 0;
               sampler.parameters.find((p) => p.name === "size").value = 10.0;
-
-              // 2. REMETTRE LE SON (Master Unmute)
-              // On revient à 1 (ou la valeur que tu souhaites) avec une petite rampe de 0.1s
               masterGainRef.current?.gain.setTargetAtTime(1, audioContext.currentTime, 0.1);
             }, 10500);
           }}

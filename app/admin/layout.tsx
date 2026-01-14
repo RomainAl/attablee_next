@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { setAdminAudio } from "@/store/audio.admin.store";
 import { setCurrentPage } from "@/store/mess.admin.store";
 import { createPeer, reconnUsers } from "@/store/webrtc.admin.store";
 import { useRef } from "react";
@@ -12,9 +13,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const initAdmin = () => {
     createPeer();
-    // setAdminAudio().then(() => {
-    //   setAudioAnalyser();
-    // });
+    setAdminAudio();
     // setMidis();
   };
 
