@@ -113,6 +113,60 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --toastify-color-light: oklch(68.93% 0.19 45.17/0.7);
+  --toastify-color-dark: oklch(28.5% 0 0 / 0.7);
+  --toastify-color-info: var(--primary);
+  --toastify-color-success: oklch(69% 0.23 142.64);
+  --toastify-color-warning: oklch(84% 0.17 91.77);
+  --toastify-color-error: oklch(63% 0.19 29.74);
+  --toastify-color-transparent: oklch(94.91% 0 0 / 0.7);
+
+  --toastify-icon-color-info: var(--toastify-color-info);
+  --toastify-icon-color-success: var(--toastify-color-success);
+  --toastify-icon-color-warning: var(--toastify-color-warning);
+  --toastify-icon-color-error: var(--toastify-color-error);
+
+  --toastify-container-width: fit-content;
+  --toastify-toast-width: 320px;
+  --toastify-toast-offset: 16px;
+  --toastify-toast-top: max(var(--toastify-toast-offset), env(safe-area-inset-top));
+  --toastify-toast-right: max(var(--toastify-toast-offset), env(safe-area-inset-right));
+  --toastify-toast-left: max(var(--toastify-toast-offset), env(safe-area-inset-left));
+  --toastify-toast-bottom: max(var(--toastify-toast-offset), env(safe-area-inset-bottom));
+  --toastify-toast-background: oklch(94.91% 0 0);
+  --toastify-toast-padding: 14px;
+  --toastify-toast-min-height: 64px;
+  --toastify-toast-max-height: 800px;
+  --toastify-toast-bd-radius: 10px;
+  --toastify-toast-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  --toastify-font-family: sans-serif;
+  --toastify-z-index: 9999;
+  --toastify-text-color-light: oklch(94.91% 0 0);
+  --toastify-text-color-dark: oklch(94.91% 0 0);
+
+  /* Used only for colored theme */
+  --toastify-text-color-info: oklch(94.91% 0 0);
+  --toastify-text-color-success: oklch(94.91% 0 0);
+  --toastify-text-color-warning: oklch(94.91% 0 0);
+  --toastify-text-color-error: oklch(94.91% 0 0);
+
+  --toastify-spinner-color: oklch(59% 0.14 47.89);
+  --toastify-spinner-color-empty-area: oklch(94.91% 0 0);
+  --toastify-color-progress-light: var(--primary);
+  --toastify-color-progress-dark: var(--primary);
+  --toastify-color-progress-info: var(--toastify-color-info);
+  --toastify-color-progress-success: var(--toastify-color-success);
+  --toastify-color-progress-warning: var(--toastify-color-warning);
+  --toastify-color-progress-error: var(--toastify-color-error);
+  /* used to control the opacity of the progress trail */
+  --toastify-color-progress-bgo: 0.1;
+}
+
+@theme {
+  --breakpoint-xs: 10rem;
+  --breakpoint-2xl: 100rem;
+  --breakpoint-3xl: 120rem;
 }
 
 @layer base {
@@ -122,4 +176,9 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.Toastify__toast {
+  border-radius: 10px;
+  backdrop-filter: blur(var(--blur-xs));
 }

@@ -36,7 +36,7 @@ export const RecButton = ({ onRecord }: RecButtonProps) => {
               r="26"
               fill="none"
               stroke="white"
-              strokeWidth="3"
+              strokeWidth="4"
               strokeDasharray="163"
               // 2. Animation CSS passée à 10s ici dans la classe
               className="animate-[progress_10s_linear_forwards]"

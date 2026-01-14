@@ -12,10 +12,8 @@ interface AudioState {
   audioContext: AudioContext | null;
   devices: Record<string, Device>;
   names: string[];
-  isLoading: number;
+  isLoading: number; // 0 à 1 (0% à 100%)
   activeEffects: string[];
-
-  // Actions
   initAudio: (desiredSampleRate: number) => AudioContext;
   loadAllRNBO: (names: string[]) => Promise<void>;
   toggleEffect: (name: string) => void;
@@ -26,7 +24,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   devices: {},
   names: ["sampler", "delay", "downsample", "reverb", "disto"],
   isLoading: 0,
-  activeEffects: ["sampler"],
+  activeEffects: ["sampler"], // Le sampler est actif par défaut
 
   initAudio: (desiredSampleRate: number) => {
     let ctx = get().audioContext;
@@ -34,6 +32,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       ctx = new (window.AudioContext || window.webkitAudioContext)({
         sampleRate: desiredSampleRate,
       });
+      // Important : suspendre par défaut pour attendre le geste utilisateur
       ctx.suspend();
       set({ audioContext: ctx });
     }
@@ -42,52 +41,70 @@ export const useAudioStore = create<AudioState>((set, get) => ({
 
   loadAllRNBO: async (names) => {
     const { isLoading, audioContext } = get();
+    if (isLoading > 0) return;
 
-    // Sécurité : si déjà chargé ou en cours, on ne fait rien
-    if (isLoading) return;
-
-    set({ isLoading: 0 });
     if (!audioContext) {
-      alert("Audio non initialisé ! Recharge la page !");
+      setToast({
+        type: "error",
+        data: { title: "AUDIO ERROR", content: "L'AudioContext n'est pas initialisé." },
+      });
       return;
     }
 
     try {
       const loadedDevices: Record<string, Device> = {};
 
-      await Promise.all(
-        names.map(async (name, i) => {
-          set({ isLoading: (100 * i + 1) / names.length });
-          const response = await fetch(`effects/${name}.export.json`);
-          const patcher = await response.json();
-          const device = await createDevice({ context: audioContext, patcher });
-          loadedDevices[name] = device;
-        })
-      );
+      // Helper pour assigner un paramètre sans faire planter l'app
+      const setSafeParam = (deviceName: string, paramName: string, value: number) => {
+        const dev = loadedDevices[deviceName];
+        const p = dev?.parameters.find((p) => p.name === paramName);
+        if (p) p.value = value;
+      };
 
-      // 3. Configuration initiale
-      loadedDevices["delay"].parameters.find((p) => p.name === "time")!.value = 30.0;
-      loadedDevices["downsample"].parameters.find((p) => p.name === "down-sample").value = 10.0;
-      loadedDevices["delay"].parameters.find((p) => p.name === "input").value = 1.0;
-      loadedDevices["delay"].parameters.find((p) => p.name === "time").value = 30.0;
-      loadedDevices["reverb"].parameters.find((p) => p.name === "mix").value = 100.0;
-      loadedDevices["disto"].parameters.find((p) => p.name === "drive").value = 20.0;
-      loadedDevices["disto"].parameters.find((p) => p.name === "mix").value = 100.0;
-      loadedDevices["disto"].parameters.find((p) => p.name === "treble").value = 50.0;
+      // Chargement séquentiel pour mettre à jour la barre de progression
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i];
+        set({ isLoading: Math.max(i / names.length, 0.01) }); // Update progress (0 to 0.99)
+
+        const response = await fetch(`effects/${name}.export.json`);
+        if (!response.ok) throw new Error(`Failed to load ${name}`);
+
+        const patcher = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const device = await createDevice({ context: audioContext, patcher });
+        loadedDevices[name] = device;
+      }
+
+      // 3. Configuration initiale sécurisée
+      setSafeParam("delay", "time", 30.0);
+      setSafeParam("delay", "input", 1.0);
+      setSafeParam("downsample", "down-sample", 10.0);
+      setSafeParam("reverb", "mix", 100.0);
+      setSafeParam("disto", "drive", 20.0);
+      setSafeParam("disto", "mix", 100.0);
+      setSafeParam("disto", "treble", 50.0);
 
       set({ devices: loadedDevices, isLoading: 1 });
+      console.log("🚀 RNBO Effects Loaded & Configured");
     } catch (err) {
       console.error("RNBO Loading Error:", err);
       set({ isLoading: 0 });
       setToast({
         type: "error",
-        data: { title: "PROBLÈME AUDIO", content: "Un problème est survenu lors du chargement des effets. Actualise ta page et retente !" },
+        data: {
+          title: "PROBLÈME CHARGEMENT",
+          content: "Erreur lors de la récupération des modules audio. Vérifie ta connexion.",
+        },
       });
     }
   },
 
-  toggleEffect: (name) =>
+  toggleEffect: (name) => {
+    // On empêche de désactiver le sampler car c'est notre source principale
+    if (name === "sampler") return;
+
     set((state) => ({
       activeEffects: state.activeEffects.includes(name) ? state.activeEffects.filter((n) => n !== name) : [...state.activeEffects, name],
-    })),
+    }));
+  },
 }));
