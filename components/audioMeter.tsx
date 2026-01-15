@@ -125,27 +125,49 @@ export const AudioMeterMemo = memo(function AudioMeter({ id }: { id: string }) {
       (s) => s.ouestu,
       (v) => {
         if (v === id) {
-          ref.current!.style.border = "10px solid red";
+          ref.current!.style.boxShadow = "inset 0 0 0 10px #ef4444";
+          ref.current!.style.borderColor = "#ef4444";
         } else {
-          ref.current!.style.border = "1px solid grey";
+          ref.current!.style.boxShadow = "none";
+          ref.current!.style.borderColor = "rgba(255, 255, 255, 0.05)";
         }
       }
     );
 
-    // Dessin du VU-mètre
-    const draw = () => {
+    const fps = 20; // On descend à 20 images par seconde
+    const interval = 1000 / fps;
+    let lastDrawTime = 0;
+
+    const draw = (now: number) => {
+      requestRef.current = requestAnimationFrame(draw);
+
+      // On vérifie si assez de temps s'est écoulé depuis le dernier dessin
+      if (now - lastDrawTime < interval) return;
+      lastDrawTime = now;
+
       analyser.fftSize = 32;
       const data = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteTimeDomainData(data);
+
       let sum = 0;
-      for (let i = 0; i < data.length; i++) sum += Math.abs(data[i] / 128 - 1);
+      for (let i = 0; i < data.length; i++) {
+        sum += Math.abs(data[i] / 128 - 1);
+      }
 
       if (ref.current) {
         const intensity = Math.min(sum * 400, 255);
-        ref.current.style.backgroundColor = `rgb(${intensity}, ${intensity}, ${intensity})`;
+        // On arrondit pour éviter des changements de couleurs imperceptibles
+        const roundedIntensity = Math.round(intensity);
+
+        if (roundedIntensity < 2) {
+          ref.current.style.backgroundColor = "#0a0a0a";
+        } else {
+          // On utilise des valeurs entières pour le RGB
+          ref.current.style.backgroundColor = `rgb(${roundedIntensity}, ${roundedIntensity}, ${roundedIntensity})`;
+        }
       }
-      requestRef.current = requestAnimationFrame(draw);
     };
+
     requestRef.current = requestAnimationFrame(draw);
 
     return () => {

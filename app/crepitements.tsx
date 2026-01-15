@@ -5,8 +5,25 @@ type CrepitementsProps = {
   ref: React.RefObject<HTMLAudioElement | null>;
 };
 export const Crepitements = ({ ref }: CrepitementsProps) => {
+  const startChaosVibration = () => {
+    if (!("vibrate" in navigator)) return null;
+
+    const interval = setInterval(() => {
+      // Génère 3 durées aléatoires pour un pattern [vibration, pause, vibration]
+      // Entre 20ms (très court) et 150ms (secousse plus longue)
+      const v1 = Math.floor(Math.random() * 130) + 20;
+      const p1 = Math.floor(Math.random() * 100) + 10;
+      const v2 = Math.floor(Math.random() * 130) + 20;
+
+      navigator.vibrate([v1, p1, v2]);
+    }, 300); // Se relance toutes les 300ms pour maintenir la vibration
+
+    return interval;
+  };
+
   useEffect(() => {
-    const unsubscribeGain = useMessUserStore.subscribe(
+    let vibrationInterval: NodeJS.Timeout | null = null;
+    const unsubscribeGoto = useMessUserStore.subscribe(
       (state) => state.goto,
       (value) => {
         if (ref.current)
@@ -21,11 +38,24 @@ export const Crepitements = ({ ref }: CrepitementsProps) => {
             ref.current.loop = false;
             ref.current.pause();
           }
+        if (value === 3) {
+          // ON ACTIVE LA VIBRATION CHAOTIQUE
+          if (!vibrationInterval) {
+            vibrationInterval = startChaosVibration();
+          }
+        } else {
+          // ON ARRÊTE TOUT
+          if (vibrationInterval) {
+            clearInterval(vibrationInterval);
+            vibrationInterval = null;
+            navigator.vibrate(0); // Stop immédiat
+          }
+        }
       }
     );
 
     return () => {
-      unsubscribeGain();
+      unsubscribeGoto();
     };
   }, [ref]);
 

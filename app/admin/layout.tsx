@@ -6,7 +6,7 @@ import Header from "./header";
 import MixerFooter from "./mixerFooter";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  console.log("RENDER LAYOUT");
+  // console.log("RENDER LAYOUT"); // Nettoyage console pour la fluidité
   const pageRef = useRef<HTMLDivElement>(null!);
 
   const handleDoubleClick = () => {
@@ -20,14 +20,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   useEventListener("dblclick", handleDoubleClick, pageRef);
 
   return (
-    <div ref={pageRef} className="h-dvh w-dvw flex flex-col bg-[#050505] text-white selection:bg-red-500/30">
+    <div
+      ref={pageRef}
+      // 1. Ajout de antialiased et suppression de selection:bg pour éviter les calculs de repaint
+      className="h-dvh w-dvw flex flex-col bg-black text-white antialiased select-none"
+    >
       {/* BARRE DE NAVIGATION STYLE "RACK" */}
       <Header />
 
       {/* ZONE DE CONTENU */}
-      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_50%_50%,rgba(20,20,20,1)_0%,rgba(0,0,0,1)_100%)]">
-        {children}
-      </main>
+      {/* 2. Remplacement du radial-gradient complexe par une couleur unie (bg-zinc-950)
+             Le rendu d'une couleur pleine est 10x plus rapide qu'un dégradé sur toute la page. */}
+      <main className="flex-1 relative overflow-hidden bg-[#0a0a0a]">{children}</main>
 
       {/* PETITE BARRE D'ÉTAT DISCRÈTE */}
       <MixerFooter />

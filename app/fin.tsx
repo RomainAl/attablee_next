@@ -10,7 +10,7 @@ export const Fin = () => {
       (state) => state.goto,
       (value) => {
         if (refDiv.current)
-          if (value === -1) {
+          if (value === 6) {
             refDiv.current.style.zIndex = "20";
           } else {
             refDiv.current.style.zIndex = "10";

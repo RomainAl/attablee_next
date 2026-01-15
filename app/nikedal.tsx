@@ -8,11 +8,11 @@ type CrepitementsProps = {
 
 export const Nikedal = ({ ref }: CrepitementsProps) => {
   useEffect(() => {
-    const unsubscribeGain = useMessUserStore.subscribe(
+    const unsubscribeGoto = useMessUserStore.subscribe(
       (state) => state.goto,
       (value) => {
         if (ref.current)
-          if (value === 42) {
+          if (value === 5) {
             ref.current.muted = false;
             ref.current.loop = true;
             ref.current.currentTime = 0;
@@ -28,7 +28,7 @@ export const Nikedal = ({ ref }: CrepitementsProps) => {
     );
 
     return () => {
-      unsubscribeGain();
+      unsubscribeGoto();
     };
   }, [ref]);
 

@@ -4,6 +4,7 @@ import { admin2userDataType } from "./shared.store";
 
 export const initAdmin2UserData: admin2userDataType = {
   goto: 0,
+  vid: 1,
   // toast?: toastStoreType; -> directement dans setToast (webrtc user)
 };
 

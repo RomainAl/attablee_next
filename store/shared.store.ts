@@ -4,6 +4,7 @@ export type admin2userDataType = {
   goto?: number;
   toast?: toastStoreType;
   ouestu?: number;
+  vid?:number;
 };
 
 export type user2adminDataType = {

@@ -90,7 +90,7 @@ export const setAdminAudio = async () => {
   });
 };
 
-export const setAudioAnalyser = () => {
+export const setAudioInput = () => {
   const ctx = useAudioAdminStore.getState().audioContext;
   navigator.mediaDevices
     .getUserMedia({

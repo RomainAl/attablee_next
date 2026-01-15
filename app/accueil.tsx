@@ -11,6 +11,7 @@ export const Accueil = ({ start }: { start: () => void }) => {
   const [clicked, setClicked] = useState(false);
 
   const handleClick = () => {
+    if ("vibrate" in navigator) navigator.vibrate([50, 50, 50]);
     setUserName("Elon");
     start();
     setClicked(true);

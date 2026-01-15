@@ -13,6 +13,7 @@ import { Nikedal } from "./nikedal";
 import { Reco } from "./reco";
 import { Sampler } from "./sampler";
 import { Videos } from "./videos";
+import Blackout from "./blackout";
 
 declare global {
   interface Window {
@@ -69,6 +70,7 @@ export default function Home() {
             <Crepitements ref={crepRef} />
             <NikedalCanvas />
             <Nikedal ref={nikRef} />
+            <Blackout />
             <Fin />
           </div>
         }

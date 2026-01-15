@@ -49,7 +49,7 @@ export const NikedalCanvas = () => {
   };
 
   useEffect(() => {
-    if (isClient && canvasRef.current && width > 0 && goto === 42) {
+    if (isClient && canvasRef.current && width > 0 && goto === 5) {
       drawNoise(canvasRef.current);
     }
     return () => {
@@ -57,7 +57,7 @@ export const NikedalCanvas = () => {
     };
   }, [isClient, width, height, goto]);
 
-  if (!isClient || goto !== 42) return null;
+  if (!isClient || goto !== 4) return null;
 
   return <canvas ref={canvasRef} width={width * 2} height={height * 2} className="absolute inset-0 size-full z-20" />;
 };

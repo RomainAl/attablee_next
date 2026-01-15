@@ -259,3 +259,12 @@ export const send1UserMess = (mess: admin2userDataType, id: string) => {
   const user = useWebrtcAdminStore.getState().userS.find((p) => p.id === id);
   if (user && user.peerData?.open) user.peerData.send(mess);
 };
+
+export const sendRandomUserMess = (mess: admin2userDataType, percent: number) => {
+  const userS = useWebrtcAdminStore.getState().userS;
+  userS.forEach((user) => {
+    if (user.peerData?.open) {
+      if (Math.random() <= percent / 100) user.peerData.send(mess);
+    }
+  });
+};
