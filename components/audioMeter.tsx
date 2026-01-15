@@ -53,8 +53,8 @@ export const AudioMeterMemo = memo(function AudioMeter({ id }: { id: string }) {
     gainB.gain.value = 0;
 
     source.connect(analyser);
-    analyser.connect(gainA);
-    analyser.connect(gainB);
+    source.connect(gainA);
+    source.connect(gainB);
 
     let activeNode = gainA;
     let currentChannel = -1;

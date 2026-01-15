@@ -1,3 +1,4 @@
+import { createDevice, Device } from "@rnbo/js";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
@@ -5,8 +6,10 @@ type userChanType = { id: string; ch: number };
 
 type audioStoreType = {
   audioContext: AudioContext | null;
-  audioAnalyser: AnalyserNode | null;
+  source: MediaStreamAudioSourceNode | null;
   merger: ChannelMergerNode | null;
+  reverb: Device | null;
+  freeze: Device | null;
   globalClientsGain: number;
   setGlobalClientsGain: (val: number[]) => void;
   mergerGains: GainNode[]; // Tableau des gains individuels
@@ -23,8 +26,10 @@ type audioStoreType = {
 export const useAudioAdminStore = create<audioStoreType>()(
   subscribeWithSelector((set, get) => ({
     audioContext: null,
-    audioAnalyser: null,
+    source: null,
     merger: null,
+    reverb: null,
+    freeze: null,
     globalClientsGain: 1.0,
     setGlobalClientsGain: (val: number[]) => set({ globalClientsGain: val[0] }),
     mergerGains: [],
@@ -61,56 +66,109 @@ export const setUserSChannels = (id: string, ch: number): void => {
 };
 
 export const setAdminAudio = async () => {
-  const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
+  // 1. Création immédiate du contexte et du routing de base
+  const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: 44100 });
+
   if (ctx.destination.maxChannelCount >= 10) {
     ctx.destination.channelCount = 10;
   }
-  ctx.resume();
-  const merger = ctx.createChannelMerger(Math.min(ctx.destination.channelCount, 10));
-  console.log("NOMBRE DE SORTIES :", merger.numberOfInputs);
-  // merger.channelCountMode = "explicit";
+
+  ctx.destination.channelCountMode = "explicit";
+  ctx.destination.channelInterpretation = "discrete";
+  await ctx.resume();
+
+  const numChannels = Math.min(ctx.destination.channelCount, 10);
+  const merger = ctx.createChannelMerger(numChannels);
+  merger.channelCountMode = "explicit";
   merger.channelInterpretation = "discrete";
   merger.connect(ctx.destination);
-  const gains: GainNode[] = [];
-  const initialGainsValues: number[] = [];
 
-  for (let i = 0; i < merger.numberOfInputs; i++) {
+  const gains: GainNode[] = [];
+  const initialValues: number[] = [];
+
+  for (let i = 0; i < numChannels; i++) {
     const g = ctx.createGain();
     g.gain.value = 1.0;
-    // On connecte chaque gain à son entrée spécifique du merger
     g.connect(merger, 0, i);
     gains.push(g);
-    initialGainsValues.push(1.0);
+    initialValues.push(1.0);
   }
+
   useAudioAdminStore.setState({
     audioContext: ctx,
     merger: merger,
     mergerGains: gains,
-    channelGains: initialGainsValues,
+    channelGains: initialValues,
+    channelCount: numChannels,
   });
 };
 
-export const setAudioInput = () => {
-  const ctx = useAudioAdminStore.getState().audioContext;
-  navigator.mediaDevices
-    .getUserMedia({
-      audio: {
-        sampleRate: 44100,
-        sampleSize: 16,
-        noiseSuppression: false,
-        echoCancellation: false,
-        channelCount: 1,
-        autoGainControl: true,
-      },
-      video: false,
-    })
-    .then((stream) => {
-      const source = ctx?.createMediaStreamSource(stream);
-      const audioAnalyser = ctx?.createAnalyser();
-      if (audioAnalyser) {
-        audioAnalyser.fftSize = 32;
-        source?.connect(audioAnalyser);
-      }
-      useAudioAdminStore.setState({ audioAnalyser });
+export const loadRNBOReverb = async () => {
+  const state = useAudioAdminStore.getState();
+  const ctx = state.audioContext;
+  const merger = state.merger;
+
+  if (!ctx || !merger) {
+    console.error("Moteur non initialisé");
+    return;
+  }
+
+  try {
+    console.log("Début chargement REVERB seule...");
+
+    // 1. On ne fetch que la reverb
+    const response = await fetch(`effects/reverb.export.json`);
+    const reverbJson = await response.json();
+
+    // 2. Création et isolation immédiate
+    const reverb = await createDevice({ context: ctx, patcher: reverbJson });
+    reverb.node.disconnect();
+
+    // 4. On s'assure que le contexte n'est pas suspendu
+    if (ctx.state === "suspended") await ctx.resume();
+
+    // 5. Mise à jour du store (on laisse freezes vide pour l'instant)
+    useAudioAdminStore.setState({
+      reverb,
     });
+
+    console.log("✅ REVERB chargée, Merger reconnecté. Time:", ctx.currentTime.toFixed(3));
+  } catch (err) {
+    console.error("CRASH Chargement Reverb:", err);
+  }
+};
+
+export const loadRNBOfreeze = async () => {
+  const state = useAudioAdminStore.getState();
+  const ctx = state.audioContext;
+  const merger = state.merger;
+
+  if (!ctx || !merger) {
+    console.error("Moteur non initialisé");
+    return;
+  }
+
+  try {
+    console.log("Début chargement REVERB seule...");
+
+    // 1. On ne fetch que la reverb
+    const response = await fetch(`effects/freeze.export.json`);
+    const reverbJson = await response.json();
+
+    // 2. Création et isolation immédiate
+    const freeze = await createDevice({ context: ctx, patcher: reverbJson });
+    freeze.node.disconnect();
+
+    // 4. On s'assure que le contexte n'est pas suspendu
+    if (ctx.state === "suspended") await ctx.resume();
+
+    // 5. Mise à jour du store (on laisse freezes vide pour l'instant)
+    useAudioAdminStore.setState({
+      freeze,
+    });
+
+    console.log("✅ REVERB chargée, Merger reconnecté. Time:", ctx.currentTime.toFixed(3));
+  } catch (err) {
+    console.error("CRASH Chargement Reverb:", err);
+  }
 };
