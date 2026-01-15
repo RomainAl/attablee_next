@@ -1,13 +1,14 @@
 "use client";
 
-import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useMessAdminStore, setCurrentPage } from "@/store/mess.admin.store";
-import { useAudioAdminStore, setAdminAudio } from "@/store/audio.admin.store";
+import { setAdminAudio, useAudioAdminStore } from "@/store/audio.admin.store";
+import { setCurrentPage, useMessAdminStore } from "@/store/mess.admin.store";
 import { createPeer, reconnUsers, useWebrtcAdminStore } from "@/store/webrtc.admin.store";
 import { Activity, Ghost, Monitor, Power, Radio, RefreshCcw, Zap } from "lucide-react";
+import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { Bitrate } from "./bitrate";
 
 const NavigationTabs = memo(function NavigationTabs() {
   const currentPage = useMessAdminStore((s) => s.goto);
@@ -106,11 +107,11 @@ export default function Header() {
       {/* SECTION DROITE : USERS & TOOLS */}
       <div className="ml-auto flex items-center gap-4">
         {/* USERS COUNTER */}
-        <div className="mr-2 flex flex-col items-end leading-none">
+        <div className="mr-2 flex flex-col items-center leading-none">
           <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/20">Users active</span>
           <span className="font-mono text-xs font-bold text-red-500">{usersCount.toString().padStart(2, "0")}</span>
         </div>
-
+        <Bitrate />
         <Button
           variant="ghost"
           size="sm"

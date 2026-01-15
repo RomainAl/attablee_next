@@ -28,6 +28,7 @@ export const Sampler = () => {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const peerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const rebuildGraph = useCallback(() => {
     if (!sourceRef.current || !devices || !masterGainRef.current || !analyser) return;
@@ -133,6 +134,23 @@ export const Sampler = () => {
     if (isLoading === 1) rebuildGraph();
   }, [isLoading, rebuildGraph]);
 
+  useEffect(() => {
+    const unouestu = useMessUserStore.subscribe(
+      (s) => s.ouestu,
+      (v) => {
+        if (v) {
+          pageRef.current!.style.border = "10px solid red";
+          setTimeout(() => {
+            pageRef.current!.style.border = "none";
+          }, 5000);
+        }
+      }
+    );
+    return () => {
+      unouestu();
+    };
+  }, []);
+
   if (goto !== 1) return null;
   if (isLoading > 0 && isLoading < 1)
     return (
@@ -145,7 +163,7 @@ export const Sampler = () => {
     );
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden select-none z-20">
+    <div className="fixed inset-0 bg-black overflow-hidden select-none z-20" ref={pageRef}>
       {showIntro && (
         <div className="fixed inset-0 z-30 flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setShowIntro(false)} />

@@ -254,3 +254,8 @@ export const sendMess = (mess: admin2userDataType) => {
     if (user.peerData?.open) user.peerData.send(mess);
   });
 };
+
+export const send1UserMess = (mess: admin2userDataType, id: string) => {
+  const user = useWebrtcAdminStore.getState().userS.find((p) => p.id === id);
+  if (user && user.peerData?.open) user.peerData.send(mess);
+};

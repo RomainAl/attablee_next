@@ -33,4 +33,7 @@ export const useMessUser2AdminStore = create<user2adminDataType>()(
 
 export const setOuestu = (id: string) => {
   useMessUser2AdminStore.setState({ ouestu: id });
+  setTimeout(() => {
+    useMessUser2AdminStore.setState({ ouestu: "" });
+  }, 5000);
 };

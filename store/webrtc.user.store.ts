@@ -197,6 +197,7 @@ export const peerDataConn = () => {
           console.log(data);
           const mess = data as admin2userDataType;
           if (mess.toast) setToast(mess.toast);
+          if (mess.ouestu) useMessUserStore.setState(mess);
           useMessUserStore.setState(mess);
         });
 

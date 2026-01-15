@@ -21,7 +21,7 @@ export default function Layout_mine({ children }: { children: React.ReactNode })
   };
 
   const handleDoubleClick = () => {
-    sendMess({ ouestu: "moi" });
+    sendMess({ ouestu: Date.now().toString() });
     console.log("DLBCLICK");
     if (!document.fullscreenElement) {
       requestFullscreen();

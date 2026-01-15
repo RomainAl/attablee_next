@@ -2,7 +2,7 @@
 
 import { setUserSChannels, useAudioAdminStore } from "@/store/audio.admin.store";
 import { useMessUser2AdminStore } from "@/store/mess.admin.store";
-import { useWebrtcAdminStore } from "@/store/webrtc.admin.store";
+import { send1UserMess, useWebrtcAdminStore } from "@/store/webrtc.admin.store";
 import { memo, useEffect, useRef } from "react";
 import { useInterval } from "usehooks-ts";
 import { useShallow } from "zustand/react/shallow";
@@ -126,9 +126,8 @@ export const AudioMeterMemo = memo(function AudioMeter({ id }: { id: string }) {
       (v) => {
         if (v === id) {
           ref.current!.style.border = "10px solid red";
-          setTimeout(() => {
-            ref.current!.style.border = "2px solid grey";
-          }, 5000);
+        } else {
+          ref.current!.style.border = "1px solid grey";
         }
       }
     );
@@ -164,7 +163,13 @@ export const AudioMeterMemo = memo(function AudioMeter({ id }: { id: string }) {
   }, [audioContext, merger, stream, id]);
 
   return (
-    <div className="relative size-full border border-white/5 bg-zinc-900 overflow-hidden" ref={ref}>
+    <div
+      className="relative size-full border border-white/5 bg-zinc-900 overflow-hidden"
+      ref={ref}
+      onClick={() => {
+        send1UserMess({ ouestu: Date.now() }, id);
+      }}
+    >
       <audio ref={refAudio} autoPlay muted playsInline className="hidden" />
 
       <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
