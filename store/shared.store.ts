@@ -3,11 +3,13 @@ import { create } from "zustand";
 export type admin2userDataType = {
   goto?: number;
   toast?: toastStoreType;
+  ouestu?: number;
 };
 
 export type user2adminDataType = {
   name?: string;
-  speaker?: number;
+  audioChan?: number;
+  ouestu?: string;
 };
 
 type toastStoreType = {

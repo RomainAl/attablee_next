@@ -2,7 +2,7 @@
 
 import ToastG from "@/components/toastG";
 import { requestWakeLock, useUserStore } from "@/store/user.store";
-import { useWebrtcUserStore } from "@/store/webrtc.user.store";
+import { sendMess } from "@/store/webrtc.user.store";
 import { useRef } from "react";
 import { useEventListener } from "usehooks-ts";
 
@@ -21,6 +21,7 @@ export default function Layout_mine({ children }: { children: React.ReactNode })
   };
 
   const handleDoubleClick = () => {
+    sendMess({ ouestu: "moi" });
     console.log("DLBCLICK");
     if (!document.fullscreenElement) {
       requestFullscreen();

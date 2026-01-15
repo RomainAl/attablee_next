@@ -1,7 +1,8 @@
 import type { DataConnection, MediaConnection } from "peerjs";
 import Peer from "peerjs";
 import { create } from "zustand";
-import { useMessAdminStore } from "./mess.admin.store";
+import { setUserSChannels, useAudioAdminStore } from "./audio.admin.store";
+import { setOuestu, useMessAdminStore } from "./mess.admin.store";
 import { admin2userDataType, peerOptionsStore, setToast, user2adminDataType } from "./shared.store";
 
 type userType = {
@@ -108,6 +109,10 @@ export const createPeer = () => {
               bitrates: [...state.bitrates.filter((p) => p.id !== peerData.peer), B],
             }));
           }
+          if (userData.audioChan !== undefined) {
+            setUserSChannels(peerData.peer, userData.audioChan);
+          }
+          if (userData.ouestu) setOuestu(peerData.peer);
         });
 
         peerData.on("close", () => {
@@ -160,6 +165,8 @@ export const createPeer = () => {
       peerMedia.on("stream", (stream) => {
         console.log(peerMedia.peer + " - is streaming");
         console.log("TODO : PEER MOCHE !");
+        const divisor = useAudioAdminStore.getState().merger?.numberOfInputs ?? 2;
+        setUserSChannels(peerMedia.peer, parseInt(peerMedia.peer.slice(-2)) % divisor || 0);
         const user_ = useWebrtcAdminStore.getState().userS.find((u) => u.id === peerMedia.peer);
         if (user_) {
           const user: userType = {

@@ -25,7 +25,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Header />
 
       {/* ZONE DE CONTENU */}
-      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_50%_50%,_rgba(20,20,20,1)_0%,_rgba(0,0,0,1)_100%)]">
+      <main className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_50%_50%,rgba(20,20,20,1)_0%,rgba(0,0,0,1)_100%)]">
         {children}
       </main>
 

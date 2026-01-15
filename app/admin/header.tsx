@@ -9,7 +9,6 @@ import { createPeer, reconnUsers, useWebrtcAdminStore } from "@/store/webrtc.adm
 import { Activity, Ghost, Monitor, Power, Radio, RefreshCcw, Zap } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
-// On isole la navigation pour éviter les re-renders inutiles
 const NavigationTabs = memo(function NavigationTabs() {
   const currentPage = useMessAdminStore((s) => s.goto);
 
@@ -39,7 +38,7 @@ const NavigationTabs = memo(function NavigationTabs() {
           >
             <Icon size={14} className={isActive ? "text-red-500" : "text-inherit"} />
             {item.label}
-            {isActive && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-red-500" />}
+            {isActive && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-red-500" />}
           </Button>
         );
       })}
@@ -48,8 +47,8 @@ const NavigationTabs = memo(function NavigationTabs() {
 });
 
 export default function Header() {
-  // On récupère uniquement ce qui est nécessaire pour le header
   const audioState = useAudioAdminStore((s) => s.audioContext?.state);
+  const isPeerOnline = useWebrtcAdminStore((s) => !!s.peer && !s.peer.destroyed);
   const usersCount = useWebrtcAdminStore(useShallow((s) => s.userS.filter((u) => u.peerCo).length));
 
   const initAdmin = () => {
@@ -58,32 +57,48 @@ export default function Header() {
   };
 
   return (
-    <nav className="w-full h-12 flex items-center px-3 gap-3 bg-black/60 backdrop-blur-xl border-b border-white/5 z-[100] shrink-0">
+    <nav className="z-100 flex h-12 w-full shrink-0 items-center gap-3 border-b border-white/5 bg-black/60 px-3 backdrop-blur-xl">
       {/* SECTION GAUCHE : SYSTEM INIT */}
       <div className="flex items-center gap-3">
         <Button
           variant="outline"
           size="sm"
           onClick={initAdmin}
-          className="bg-red-950/10 border-red-900/40 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-500 font-black text-[10px] gap-2 h-8"
+          className="h-8 gap-2 border-red-900/40 bg-red-950/10 text-[10px] font-black text-red-500 transition-all duration-500 hover:bg-red-500 hover:text-white"
         >
           <Zap size={14} fill="currentColor" />
           INIT SYSTEM
         </Button>
 
-        {/* ENGINE STATUS LED */}
-        <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-          <div
-            className={cn(
-              "size-1.5 rounded-full transition-all duration-500",
-              audioState === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-zinc-700"
-            )}
-          />
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">{audioState === "running" ? "Online" : "Offline"}</span>
+        {/* STATUS INDICATORS GROUP */}
+        <div className="flex items-center gap-4 rounded-full border border-white/5 bg-white/5 px-3 py-1">
+          {/* AUDIO LED */}
+          <div className="flex items-center gap-2">
+            <div
+              className={cn(
+                "size-1.5 rounded-full transition-all duration-500",
+                audioState === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-zinc-700"
+              )}
+            />
+            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/30">Audio</span>
+          </div>
+
+          <div className="h-2 w-px bg-white/10" />
+
+          {/* NETWORK LED */}
+          <div className="flex items-center gap-2">
+            <div
+              className={cn(
+                "size-1.5 rounded-full transition-all duration-500",
+                isPeerOnline ? "bg-blue-500 shadow-[0_0_8px_#3b82f6]" : "bg-zinc-700"
+              )}
+            />
+            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/30">Network</span>
+          </div>
         </div>
       </div>
 
-      <div className="h-4 w-[1px] bg-white/10" />
+      <div className="mx-1 h-4 w-px bg-white/10" />
 
       {/* SECTION CENTRE : NAVIGATION */}
       <NavigationTabs />
@@ -91,16 +106,16 @@ export default function Header() {
       {/* SECTION DROITE : USERS & TOOLS */}
       <div className="ml-auto flex items-center gap-4">
         {/* USERS COUNTER */}
-        <div className="flex flex-col items-end mr-2">
-          <span className="text-[7px] text-white/20 font-black uppercase tracking-[0.2em]">Users active</span>
-          <span className="text-xs font-mono font-bold text-red-500">{usersCount.toString().padStart(2, "0")}</span>
+        <div className="mr-2 flex flex-col items-end leading-none">
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/20">Users active</span>
+          <span className="font-mono text-xs font-bold text-red-500">{usersCount.toString().padStart(2, "0")}</span>
         </div>
 
         <Button
           variant="ghost"
           size="sm"
           onClick={reconnUsers}
-          className="text-[9px] text-white/30 hover:text-red-400 gap-2 border border-white/5 hover:border-red-900/30 h-8"
+          className="h-8 gap-2 border border-white/5 text-[9px] text-white/30 transition-all hover:border-red-900/30 hover:text-red-400"
         >
           <RefreshCcw size={12} />
           RECONNECT ALL

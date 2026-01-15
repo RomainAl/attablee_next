@@ -1,34 +1,17 @@
 "use client";
 import { AudioMeterMemo } from "@/components/audioMeter";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { useAudioAdminStore } from "@/store/audio.admin.store";
 import { useWebrtcAdminStore } from "@/store/webrtc.admin.store";
 import { useShallow } from "zustand/shallow";
+import SamplerHeader from "./samplerHeader";
 
 export default function Home() {
   const userS_id = useWebrtcAdminStore(useShallow((store) => store.userS.filter((u) => u.peerCo).map((u) => u.id)));
-  const globalGain = useAudioAdminStore((s) => s.globalClientsGain);
-  const setGlobalGain = useAudioAdminStore((s) => s.setGlobalClientsGain);
 
   return (
     <div className="relative size-full bg-black overflow-hidden font-mono">
       {/* HEADER / BARRE DE GAIN FLOTTANTE */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
-        <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full px-6 py-2 flex items-center gap-6 shadow-2xl">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-white/40 leading-none">USERS GAIN</span>
-            <span className="text-xs font-bold text-red-500 tabular-nums">{globalGain.toFixed(2)}</span>
-          </div>
-
-          <Slider max={1} min={0} step={0.01} value={[globalGain]} onValueChange={setGlobalGain} className="flex-1 cursor-pointer" />
-
-          <div className="text-[10px] text-white/40 flex flex-col items-end">
-            <span>USERS</span>
-            <span className="text-white">{userS_id.length}</span>
-          </div>
-        </div>
-      </div>
+      <SamplerHeader />
 
       {/* GRILLE DE MONITORING */}
       <div className="flex size-full flex-row flex-wrap gap-0 justify-center content-center bg-zinc-950">

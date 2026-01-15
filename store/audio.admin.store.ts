@@ -1,5 +1,8 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+
+type userChanType = { id: string; ch: number };
+
 type audioStoreType = {
   audioContext: AudioContext | null;
   audioAnalyser: AnalyserNode | null;
@@ -9,6 +12,12 @@ type audioStoreType = {
   mergerGains: GainNode[]; // Tableau des gains individuels
   channelGains: number[]; // Valeurs numériques pour l'UI
   setChannelGain: (ch: number, val: number[]) => void;
+  userSChannels: userChanType[];
+  autoRouting: boolean;
+  toggleAutoRouting: () => void;
+  autoRoutingSpeed: number;
+  setAutoRoutingSpeed: (val: number[]) => void;
+  channelCount: number;
 };
 
 export const useAudioAdminStore = create<audioStoreType>()(
@@ -34,8 +43,22 @@ export const useAudioAdminStore = create<audioStoreType>()(
         });
       }
     },
+    userSChannels: [],
+    autoRouting: false,
+    toggleAutoRouting: () => set((state) => ({ autoRouting: !state.autoRouting })),
+    autoRoutingSpeed: 10,
+    setAutoRoutingSpeed: (val) => set({ autoRoutingSpeed: val[0] }),
+    channelCount: 6,
   }))
 );
+
+export const setUserSChannels = (id: string, ch: number): void => {
+  const currentChannels = useAudioAdminStore.getState().userSChannels || [];
+  const filtered = currentChannels.filter((p) => p.id !== id && p.ch !== ch);
+  useAudioAdminStore.setState({
+    userSChannels: [...filtered, { id, ch }],
+  });
+};
 
 export const setAdminAudio = async () => {
   const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: 48000 });
