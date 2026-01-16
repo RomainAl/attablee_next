@@ -67,18 +67,19 @@ export const setUserSChannels = (id: string, ch: number): void => {
 
 export const setAdminAudio = async () => {
   // 1. Création immédiate du contexte et du routing de base
+  let channelCount = useAudioAdminStore.getState().channelCount;
   const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: 44100 });
-
-  if (ctx.destination.maxChannelCount >= 10) {
-    ctx.destination.channelCount = 10;
+  if (ctx.destination.maxChannelCount >= channelCount) {
+    ctx.destination.channelCount = channelCount;
+  } else {
+    channelCount = ctx.destination.channelCount;
   }
 
   ctx.destination.channelCountMode = "explicit";
   ctx.destination.channelInterpretation = "discrete";
   await ctx.resume();
 
-  const numChannels = Math.min(ctx.destination.channelCount, 10);
-  const merger = ctx.createChannelMerger(numChannels);
+  const merger = ctx.createChannelMerger(channelCount);
   merger.channelCountMode = "explicit";
   merger.channelInterpretation = "discrete";
   merger.connect(ctx.destination);
@@ -86,7 +87,7 @@ export const setAdminAudio = async () => {
   const gains: GainNode[] = [];
   const initialValues: number[] = [];
 
-  for (let i = 0; i < numChannels; i++) {
+  for (let i = 0; i < channelCount; i++) {
     const g = ctx.createGain();
     g.gain.value = 1.0;
     g.connect(merger, 0, i);
@@ -99,7 +100,7 @@ export const setAdminAudio = async () => {
     merger: merger,
     mergerGains: gains,
     channelGains: initialValues,
-    channelCount: numChannels,
+    channelCount: channelCount,
   });
 };
 
